@@ -7,8 +7,8 @@ import requests
 
 app = Flask(__name__)
 
-line_bot_api = LineBotApi("wv6nhNi0XWQTZI9ybQIXFpAtAYnxAMz4ifawVg0F9Ek8zFCO3yWXOZwxeIotjc5A9MkXyB1N3z9/GKltWIZXAOeHkEkGH9kI0YejRTzr+BGlqEC21ftcelBAmT9oCGEYBB5zqN+wrm3hjg/+VSgCOAdB04t89/1O/w1cDnyilFU=")
-handler = WebhookHandler("ba2534f7b7503b77ae1661ec070853b4")
+line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
+handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET")) 
 
 CITY_MAP = {
     "台北": "Taipei",
