@@ -7,19 +7,24 @@ import requests
 
 app = Flask(__name__)
 
+# 讀取環境變數
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
-handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET")) 
+handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
+weather_api_key = os.getenv("WEATHER_API_KEY")
+maps_api_key = os.getenv("MAPS_API_KEY")
 
 CITY_MAP = {
-    "台北": "Taipei",
-    "台中": "Taichung",
-    "高雄": "Kaohsiung",
-    "新竹": "Hsinchu",
-    "台南": "Tainan",
-    "台東": "Taitung",
-    "花蓮": "Hualien",
-    "基隆": "Keelung"
+    "台北": "Taipei", "臺北": "Taipei",
+    "台中": "Taichung", "臺中": "Taichung",
+    "高雄": "Kaohsiung", "臺南": "Tainan",
+    "台南": "Tainan", "台東": "Taitung",
+    "臺東": "Taitung", "花蓮": "Hualien",
+    "基隆": "Keelung", "新竹": "Hsinchu"
 }
+
+@app.route("/", methods=["GET"])
+def home():
+    return "WakeMeUp LINE Bot is running!"
 
 @app.route("/callback", methods=["POST"])
 def callback():
@@ -40,8 +45,7 @@ def handle_message(event):
     if msg.startswith("天氣 "):
         city_raw = msg[3:].strip()
         city = CITY_MAP.get(city_raw, city_raw)
-        api_key = "b2840fcda6958ffc95ba1cbb1d9e4c86"
-        url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric&lang=zh_tw"
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={weather_api_key}&units=metric&lang=zh_tw"
         try:
             response = requests.get(url)
             data = response.json()
@@ -50,13 +54,12 @@ def handle_message(event):
                 temp = data["main"]["temp"]
                 reply = f"{city.title()} 的天氣是 {weather}，氣溫約 {temp}°C。"
             else:
-                reply = f"查無「{city}」的天氣資料，請確認地名拼寫正確。"
+                reply = f"查無「{city_raw}」的天氣資料，請確認地名拼寫正確。"
         except Exception as e:
             reply = "發生錯誤，無法取得天氣資訊。"
-            print("Error:", e)
-        
+            print("Weather API Error:", e)
 
-    elif msg.lower().startswith("路線 ") or msg == "路線":
+    elif msg.startswith("路線 ") or msg == "路線":
         inputs = msg[3:].strip().split(",")
         if len(inputs) != 3:
             reply = "請輸入格式正確的內容：出發地,目的地,出發時間（例如：台北,高雄,08:00）"
@@ -64,10 +67,9 @@ def handle_message(event):
             origin_raw, destination_raw, departure_time = inputs
             origin = CITY_MAP.get(origin_raw.strip(), origin_raw.strip())
             destination = CITY_MAP.get(destination_raw.strip(), destination_raw.strip())
-            api_key = "AIzaSyABxedlS9bQnejGwQ5C0p6CDOaarcDc5aU"
             url = (
                 f"https://maps.googleapis.com/maps/api/directions/json?"
-                f"origin={origin}&destination={destination}&departure_time=now&key={api_key}&language=zh-TW"
+                f"origin={origin}&destination={destination}&departure_time=now&key={maps_api_key}&language=zh-TW"
             )
             try:
                 response = requests.get(url)
@@ -78,16 +80,17 @@ def handle_message(event):
                     duration = route["duration"]["text"]
                     reply = f"從 {origin} 到 {destination} 的距離是 {distance}，預計需要 {duration}。"
                 else:
-                    reply = "無法取得路線資訊，請確認地點拼寫正確。"
+                    reply = f"無法取得路線資訊，請確認地點拼寫正確。\nAPI 回應: {data.get('status')}"
+                    print("Route API Response:", data)
             except Exception as e:
                 reply = "發生錯誤，無法查詢路線資訊。"
-                print("Route Error:", e)
+                print("Route API Error:", e)
 
     elif "簡介" in msg:
         reply = (
             "👥 第十組 WakeMeUp 🛏️\n"
             "個人化智慧通勤規劃 Line Bot\n\n"
-            "💻 開發環境：Python 3.9.6 \n\n"
+            "💻 開發環境：Python 3.9.6\n\n"
             "📌 成員：\n"
             "藥學二　王瑋仁\n"
             "化工二　呂子毅\n"
@@ -110,8 +113,8 @@ def handle_message(event):
             "　　簡介\n\n"
             "🔁 其他訊息 ➤ 原樣回覆"
         )
-          
-    elif "ib" in msg:  
+
+    elif "ib" in msg:
         reply = "我是IB！"
 
     else:
@@ -120,4 +123,5 @@ def handle_message(event):
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 if __name__ == "__main__":
-    app.run(port=8080)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
