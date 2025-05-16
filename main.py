@@ -7,7 +7,6 @@ import requests
 
 app = Flask(__name__)
 
-# 讀取環境變數
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 weather_api_key = os.getenv("WEATHER_API_KEY")
