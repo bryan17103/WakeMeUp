@@ -96,14 +96,15 @@ def handle_message(event):
             "　　班次 [城市] [公車路線]\n"
             "　　例如：班次 Taipei 265\n\n"
             "📚 功能查詢 ➤ 輸入：功能\n"
-            "🧑🏻‍💻 開發者查詢 ➤ 輸入：簡介\n"
+            "🧑🏻‍💻 開發者查詢 ➤ 輸入：簡介\n\n"
+            "🪧 WakeMeUp 版本資訊：1.0"
         )
 
     elif "ib" in msg_lower:
         reply = "我是IB！"
 
     else:
-        reply = event.message.text
+        reply = "指令無法辨識，請輸入「功能」查詢支援功能！"
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
