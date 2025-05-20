@@ -59,6 +59,7 @@ def get_weather_forecast(lat, lon, target_time):
         pop = int(nearest.get("pop", 0) * 100)
         return desc, pop
     return "查無預報", 0
+
 def parse_duration_to_minutes(duration_str):
     try:
         minutes = 0
@@ -111,7 +112,7 @@ def get_bus_estimates(city, route_name):
     else:
         return "⚠️ 查詢公車資料失敗"
 
-def get_mrt_info(): #未完成
+def get_mrt_info():
     token = get_tdx_access_token()
     url = "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/EstimatedTimeOfArrival/MetroTaipei?$top=100&$format=JSON"
     headers = {"Authorization": f"Bearer {token}"}
@@ -136,7 +137,9 @@ def get_filtered_modes(blocked_modes):
 
 def add_trip_segment(start, end, time_str, allowed_modes):
     try:
-        if "," in time_str:
+        if not time_str:
+            departure_time = datetime.now()
+        elif "," in time_str:
             date_part, time_part = [x.strip() for x in time_str.split(",")]
             departure_time = parser.parse(f"{date_part} {time_part}")
         else:
@@ -211,7 +214,7 @@ def add_trip_segment(start, end, time_str, allowed_modes):
         f"🚗 推薦交通方式：{best_label}\n"
         f"⏱️ 預計抵達時間：{actual_arrival}\n"
         f"☁️ 預報天氣：{weather}｜🌧️ 降雨機率：{rain_prob}% \n"
-        f"若欲查看行程規劃，請輸入「結束」"
+        f"📦 若欲查看行程規劃，請輸入「結束」"
     )
 
 def summarize_trip():
