@@ -46,6 +46,20 @@ def handle_message(event):
     elif msg_lower.startswith("路線"):
         inputs = msg[3:].strip().split(",")
         try:
+            if len(inputs) == 2:
+                origin, destination = inputs
+                time = ""  # 空字串表示使用目前時間
+                filtered = get_filtered_modes([])
+            elif len(inputs) == 4:
+                origin, destination, date_str, time_str = inputs
+                time = f"{date_str},{time_str}"
+                filtered = get_filtered_modes([])
+            elif len(inputs) == 5:
+                origin, destination, date_str, time_str, blocked = inputs
+                time = f"{date_str},{time_str}"
+                filtered = get_filtered_modes([blocked])
+                else:
+                    raise ValueError(f"你輸入了 {len(inputs)} 個欄位，格式應為：出發地,目的地[,日期,時間[,排除方式]]")
             if len(inputs) == 4:
                 origin, destination, date_str, time_str = inputs
                 time = f"{date_str},{time_str}"
