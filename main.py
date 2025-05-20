@@ -48,7 +48,7 @@ def handle_message(event):
         try:
             if len(inputs) == 2:
                 origin, destination = inputs
-                time = ""  # 空字串表示使用目前時間
+                time = ""
                 filtered = get_filtered_modes([])
             elif len(inputs) == 4:
                 origin, destination, date_str, time_str = inputs
@@ -58,21 +58,11 @@ def handle_message(event):
                 origin, destination, date_str, time_str, blocked = inputs
                 time = f"{date_str},{time_str}"
                 filtered = get_filtered_modes([blocked])
-                else:
-                    raise ValueError(f"你輸入了 {len(inputs)} 個欄位，格式應為：出發地,目的地[,日期,時間[,排除方式]]")
-            if len(inputs) == 4:
-                origin, destination, date_str, time_str = inputs
-                time = f"{date_str},{time_str}"
-                filtered = get_filtered_modes([])
-            elif len(inputs) == 5:
-                origin, destination, date_str, time_str, blocked = inputs
-                time = f"{date_str},{time_str}"
-                filtered = get_filtered_modes([blocked])
             else:
-                raise ValueError(f"你輸入了 {len(inputs)} 個欄位，格式應為：出發地,目的地,日期,時間[,排除方式]")
+                raise ValueError(f"你輸入了 {len(inputs)} 個欄位，格式應為：出發地,目的地[,日期,時間[,排除方式]]")
             reply = add_trip_segment(origin.strip(), destination.strip(), time, filtered)
         except Exception as e:
-            reply = f"⚠️ 請輸入格式正確的：路線 出發地,目的地,日期,時間（可加排除方式）\n錯誤詳情：{e}"
+            reply = f"⚠️ 請輸入格式正確的：路線 出發地,目的地[,日期,時間[,排除方式]]\n錯誤詳情：{e}"
 
     elif msg_lower.startswith("班次"):
         try:
