@@ -1,0 +1,240 @@
+import requests
+from datetime import datetime, timedelta
+from dateutil import parser
+import googlemaps
+
+# API 金鑰區（請改為從環境變數取得以部署到雲端）
+import os
+OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
+TDX_CLIENT_ID = os.getenv("TDX_CLIENT_ID")
+TDX_CLIENT_SECRET = os.getenv("TDX_CLIENT_SECRET")
+GOOGLE_MAPS_API_KEY = os.getenv("MAPS_API_KEY")
+
+# 初始化變數
+gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
+travel_plan = []
+DEFAULT_RECOMMENDED_MODES = ["開車", "走路", "騎腳踏車", "公車", "大眾運輸（捷運、火車、高鐵）"]
+FIXED_BUS_SCHEDULE = {
+    "家公車": ["08:00", "08:30", "09:00"],
+    "北車捷運": ["12:00", "12:30", "13:00"]
+}
+
+# 即時天氣查詢
+def get_current_weather(city):
+    city = city.replace("臺", "台")
+    try:
+        geocode_result = gmaps.geocode(city)
+        if not geocode_result:
+            return f"❌ 找不到與「{city}」對應的位置。"
+        location = geocode_result[0]["geometry"]["location"]
+        lat = location["lat"]
+        lon = location["lng"]
+
+        realtime_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=zh_tw"
+        forecast_url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=zh_tw"
+
+        real_res = requests.get(realtime_url)
+        real_data = real_res.json()
+
+        if real_res.status_code == 200:
+            desc = real_data["weather"][0]["description"]
+            temp = real_data["main"]["temp"]
+            now_text = f"目前 {city} 的天氣為 {desc}，氣溫約 {temp}℃"
+        else:
+            now_text = f"目前天氣資料查詢失敗"
+
+        fore_res = requests.get(forecast_url)
+        if fore_res.status_code == 200:
+            forecast_data = fore_res.json()
+            now = datetime.now()
+            near = min(forecast_data["list"], key=lambda f: abs(datetime.strptime(f["dt_txt"], "%Y-%m-%d %H:%M:%S") - now))
+            pop = int(near.get("pop", 0) * 100)
+            return f"{now_text}\n🌧️ 降雨機率：{pop}%（未來 3 小時內預測）"
+        else:
+            return now_text + "\n🌧️ 預報查詢失敗"
+
+    except Exception as e:
+        return f"發生錯誤，無法取得天氣資訊。({e})"
+
+# 預報天氣查詢（未來）
+def get_weather_forecast(lat, lon, target_time):
+    url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=metric&lang=zh_tw"
+    res = requests.get(url)
+    if res.status_code == 200:
+        data = res.json()
+        nearest = min(data["list"], key=lambda f: abs(datetime.strptime(f["dt_txt"], "%Y-%m-%d %H:%M:%S") - target_time))
+        desc = nearest["weather"][0]["description"]
+        pop = int(nearest.get("pop", 0) * 100)
+        return desc, pop
+    return "查無預報", 0
+
+# 時間字串解析為分鐘
+def parse_duration_to_minutes(duration_str):
+    try:
+        minutes = 0
+        if "hour" in duration_str:
+            parts = duration_str.split("hour")
+            hr = int(parts[0].strip())
+            minutes += hr * 60
+            if "min" in parts[1]:
+                min_str = parts[1].split("min")[0]
+                minutes += int(min_str.strip())
+        elif "min" in duration_str:
+            minutes = int(duration_str.split("min")[0].strip())
+        return minutes
+    except:
+        return float('inf')
+
+# 取得 TDX Token
+def get_tdx_access_token():
+    url = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = {
+        "grant_type": "client_credentials",
+        "client_id": TDX_CLIENT_ID,
+        "client_secret": TDX_CLIENT_SECRET
+    }
+    res = requests.post(url, headers=headers, data=data)
+    return res.json()["access_token"] if res.status_code == 200 else ""
+
+# 公車到站預估
+def get_bus_estimates(city, route_name):
+    token = get_tdx_access_token()
+    url = f"https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/{city}/{route_name}?$top=100&$format=JSON"
+    headers = {"Authorization": f"Bearer {token}"}
+    res = requests.get(url, headers=headers)
+    if res.status_code == 200:
+        data = res.json()
+        output = []
+        for stop in data:
+            stop_name = stop['StopName']['Zh_tw']
+            direction = "順向" if stop['Direction'] == 0 else "逆向"
+            est = stop.get("EstimateTime")
+            next_time = stop.get("NextBusTime")
+            if est:
+                mins = int(est / 60)
+                output.append(f"🚌 {stop_name}（{direction}）：預估 {mins} 分鐘到站")
+            elif next_time:
+                dt = datetime.fromisoformat(next_time)
+                output.append(f"🚌 {stop_name}（{direction}）：尚未發車，下一班預定 {dt.strftime('%H:%M')}")
+            else:
+                output.append(f"🚌 {stop_name}（{direction}）：查無即時資料")
+        return "\n".join(output)
+    else:
+        return "⚠️ 查詢公車資料失敗"
+
+# 捷運預估時間查詢
+def get_mrt_info():
+    token = get_tdx_access_token()
+    url = "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/EstimatedTimeOfArrival/MetroTaipei?$top=100&$format=JSON"
+    headers = {"Authorization": f"Bearer {token}"}
+    res = requests.get(url, headers=headers)
+    if res.status_code == 200:
+        data = res.json()
+        output = []
+        for item in data:
+            station = item["StationName"]["Zh_tw"]
+            dest = item["DestinationStationName"]["Zh_tw"]
+            est = item.get("EstimateTime")
+            direction = "順行" if item.get("Direction", 0) == 0 else "逆行"
+            if est:
+                mins = int(est / 60)
+                output.append(f"🚇 {station} ➜ {dest}（{direction}）：約 {mins} 分鐘抵達")
+        return "\n".join(output) if output else "🚇 目前無捷運即時資料"
+    else:
+        return "⚠️ 查詢捷運資料失敗"
+
+# 過濾交通方式
+def get_filtered_modes(blocked_modes):
+    return [mode for mode in DEFAULT_RECOMMENDED_MODES if mode not in blocked_modes]
+
+# 加入行程段落
+def add_trip_segment(start, end, time_str, allowed_modes):
+    try:
+        if "," in time_str:
+            date_part, time_part = [x.strip() for x in time_str.split(",")]
+            departure_time = parser.parse(f"{date_part} {time_part}")
+        else:
+            departure_time = parser.parse(time_str) if ":" in time_str else parser.parse(f"{time_str[:2]}:{time_str[2:]}")
+    except Exception as e:
+        return f"⚠️ 時間格式錯誤：{e}"
+
+    geo = gmaps.geocode(end)
+    lat, lon = geo[0]['geometry']['location'].values() if geo else (25.0478, 121.5319)
+    weather, rain_prob = get_weather_forecast(lat, lon, departure_time)
+
+    route_info = {}
+    mode_map = {'driving': '開車', 'walking': '走路', 'bicycling': '騎腳踏車', 'transit': '大眾運輸（綜合）', 'bus': '公車', 'subway': '大眾運輸（捷運、火車、高鐵）'}
+
+    for mode in ['driving', 'walking', 'bicycling', 'transit']:
+        try:
+            result = gmaps.directions(start, end, mode=mode, departure_time=departure_time)
+            if result:
+                leg = result[0]['legs'][0]
+                dur = leg['duration']['text']
+                val = leg['duration']['value']
+                arr = (departure_time + timedelta(seconds=val)).strftime("%H:%M")
+                route_info[mode_map[mode]] = (dur, arr)
+        except:
+            route_info[mode_map[mode]] = ("查詢失敗", "-")
+
+    for tmode in ['bus', 'subway']:
+        try:
+            result = gmaps.directions(start, end, mode='transit', transit_mode=tmode, departure_time=departure_time)
+            if result:
+                leg = result[0]['legs'][0]
+                dur = leg['duration']['text']
+                val = leg['duration']['value']
+                arr = (departure_time + timedelta(seconds=val)).strftime("%H:%M")
+                route_info[mode_map[tmode]] = (dur, arr)
+        except:
+            route_info[mode_map[tmode]] = ("查詢失敗", "-")
+
+    not_recommended = ["騎腳踏車"] if rain_prob >= 30 else []
+
+    best_label = None
+    best_time = float('inf')
+    for label in route_info:
+        if label not in allowed_modes or label in not_recommended:
+            continue
+        duration_str, arrival = route_info.get(label, (None, "-"))
+        if duration_str and duration_str not in ["查無結果", "查詢失敗"]:
+            mins = parse_duration_to_minutes(duration_str)
+            if mins < best_time:
+                best_time = mins
+                best_label = label
+
+    label_key = f"{start}{best_label}"
+    fixed_times = FIXED_BUS_SCHEDULE.get(label_key)
+    actual_arrival = route_info.get(best_label, (None, "-"))[1]
+    fixed_departure = "-"
+    if actual_arrival == "-" and fixed_times:
+        for t in fixed_times:
+            t_obj = parser.parse(t)
+            if t_obj >= departure_time:
+                actual_arrival = (t_obj + timedelta(minutes=20)).strftime("%H:%M")
+                fixed_departure = t_obj.strftime("%H:%M")
+                break
+
+    travel_plan.append({
+        "from": start,
+        "to": end,
+        "depart": departure_time.strftime("%Y-%m-%d %H:%M"),
+        "mode": best_label,
+        "arrival": actual_arrival,
+        "weather": weather,
+        "rain": rain_prob,
+        "fixed_time": fixed_departure
+    })
+
+    if not best_label:
+        return f"⚠️ 無法找到合適的交通方式從【{start}】到【{end}】，請嘗試更換時間或不要排除太多交通方式。"
+    return f"你的交通方式【{best_label}】，到達【{end}】時為【{actual_arrival}】，還有想輸入的路線嗎？"
+
+# 匯總行程
+def summarize_trip():
+    output = ["你的最佳行程規畫為："]
+    for i, seg in enumerate(travel_plan):
+        fixed_note = f"搭乘於【{seg['fixed_time']}】" if seg['fixed_time'] != "-" else "搭乘時間依即時資訊"
+        output.append(f"第{i+1}站：{seg['from']} ➜ {seg['to']}。【{seg['depart']}】出發，{fixed_note}的【{seg['mode']}】，{seg['arrival']} 抵達，天氣：{seg['weather']}；降雨機率：{seg['rain']}%。")
+    return "\n".join(output)
