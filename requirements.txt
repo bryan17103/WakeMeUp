@@ -1,2 +1,5 @@
-flask
+Flask
 line-bot-sdk
+requests
+python-dateutil
+googlemaps
