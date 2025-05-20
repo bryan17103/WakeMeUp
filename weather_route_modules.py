@@ -123,7 +123,7 @@ def get_bus_estimates(city, route_name):
     else:
         return "⚠️ 查詢公車資料失敗"
 
-def get_mrt_info():
+def get_mrt_info(): #還沒處理好
     token = get_tdx_access_token()
     url = "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/EstimatedTimeOfArrival/MetroTaipei?$top=100&$format=JSON"
     headers = {"Authorization": f"Bearer {token}"}
