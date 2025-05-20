@@ -1,12 +1,9 @@
 import requests
 from datetime import datetime, timedelta
 from dateutil import parser
+from zoneinfo import ZoneInfo
 import googlemaps
 import os
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-departure_time = datetime.now(ZoneInfo("Asia/Taipei"))
 
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 TDX_CLIENT_ID = os.getenv("TDX_CLIENT_ID")
@@ -43,8 +40,13 @@ def get_current_weather(city):
         fore_res = requests.get(forecast_url)
         if fore_res.status_code == 200:
             forecast_data = fore_res.json()
-            now = datetime.now()
-            near = min(forecast_data["list"], key=lambda f: abs(datetime.strptime(f["dt_txt"], "%Y-%m-%d %H:%M:%S") - now))
+            now = datetime.now(ZoneInfo("Asia/Taipei"))
+            near = min(
+                forecast_data["list"],
+                key=lambda f: abs(
+                    datetime.strptime(f["dt_txt"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=ZoneInfo("Asia/Taipei")) - now
+                )
+            )
             pop = int(near.get("pop", 0) * 100)
             return f"{now_text}\n🌧️ 降雨機率：{pop}%（未來 3 小時內預測）"
         else:
@@ -58,7 +60,12 @@ def get_weather_forecast(lat, lon, target_time):
     res = requests.get(url)
     if res.status_code == 200:
         data = res.json()
-        nearest = min(data["list"], key=lambda f: abs(datetime.strptime(f["dt_txt"], "%Y-%m-%d %H:%M:%S") - target_time))
+        nearest = min(
+            data["list"],
+            key=lambda f: abs(
+                datetime.strptime(f["dt_txt"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=ZoneInfo("Asia/Taipei")) - target_time
+            )
+        )
         desc = nearest["weather"][0]["description"]
         pop = int(nearest.get("pop", 0) * 100)
         return desc, pop
@@ -145,9 +152,9 @@ def add_trip_segment(start, end, time_str, allowed_modes):
             departure_time = datetime.now(ZoneInfo("Asia/Taipei"))
         elif "," in time_str:
             date_part, time_part = [x.strip() for x in time_str.split(",")]
-            departure_time = parser.parse(f"{date_part} {time_part}")
+            departure_time = parser.parse(f"{date_part} {time_part}").replace(tzinfo=ZoneInfo("Asia/Taipei"))
         else:
-            departure_time = parser.parse(time_str) if ":" in time_str else parser.parse(f"{time_str[:2]}:{time_str[2:]}")
+            departure_time = parser.parse(time_str if ":" in time_str else f"{time_str[:2]}:{time_str[2:]}").replace(tzinfo=ZoneInfo("Asia/Taipei"))
     except Exception as e:
         return f"⚠️ 時間格式錯誤：{e}"
 
@@ -234,4 +241,6 @@ def summarize_trip():
             f"⏱️ 預計抵達：{seg['arrival']}\n"
             f"☁️ 天氣：{seg['weather']}｜🌧️ 降雨機率：{seg['rain']}%"
         )
-    return "\n".join(output)
+    result = "\n".join(output)
+    travel_plan.clear()  # 清空行程紀錄
+    return result
