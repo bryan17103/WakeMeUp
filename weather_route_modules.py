@@ -59,7 +59,6 @@ def get_weather_forecast(lat, lon, target_time):
         pop = int(nearest.get("pop", 0) * 100)
         return desc, pop
     return "查無預報", 0
-
 def parse_duration_to_minutes(duration_str):
     try:
         minutes = 0
@@ -112,7 +111,7 @@ def get_bus_estimates(city, route_name):
     else:
         return "⚠️ 查詢公車資料失敗"
 
-def get_mrt_info():
+def get_mrt_info(): #未完成
     token = get_tdx_access_token()
     url = "https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/EstimatedTimeOfArrival/MetroTaipei?$top=100&$format=JSON"
     headers = {"Authorization": f"Bearer {token}"}
@@ -190,17 +189,7 @@ def add_trip_segment(start, end, time_str, allowed_modes):
                 best_time = mins
                 best_label = label
 
-    label_key = f"{start}{best_label}"
-    fixed_times = FIXED_BUS_SCHEDULE.get(label_key)
     actual_arrival = route_info.get(best_label, (None, "-"))[1]
-    fixed_departure = "-"
-    if actual_arrival == "-" and fixed_times:
-        for t in fixed_times:
-            t_obj = parser.parse(t)
-            if t_obj >= departure_time:
-                actual_arrival = (t_obj + timedelta(minutes=20)).strftime("%H:%M")
-                fixed_departure = t_obj.strftime("%H:%M")
-                break
 
     travel_plan.append({
         "from": start,
@@ -209,18 +198,32 @@ def add_trip_segment(start, end, time_str, allowed_modes):
         "mode": best_label,
         "arrival": actual_arrival,
         "weather": weather,
-        "rain": rain_prob,
-        "fixed_time": fixed_departure
+        "rain": rain_prob
     })
 
     if not best_label:
         return f"⚠️ 無法找到合適的交通方式從【{start}】到【{end}】，請嘗試更換時間或不要排除太多交通方式。"
-    return f"你的交通方式【{best_label}】，到達【{end}】時為【{actual_arrival}】，還有想輸入的路線嗎？若無，請輸入「結束」"
 
-# 匯總行程
+    return (
+        f"✅ 已新增路線：\n"
+        f"📍 出發：{start} ➜ 抵達：{end}\n"
+        f"🕒 出發時間：{departure_time.strftime('%Y-%m-%d %H:%M')}\n"
+        f"🚗 推薦交通方式：{best_label}\n"
+        f"⏱️ 預計抵達時間：{actual_arrival}\n"
+        f"☁️ 預報天氣：{weather}｜🌧️ 降雨機率：{rain_prob}%"
+    )
+
 def summarize_trip():
-    output = ["你的最佳行程規畫為："]
+    if not travel_plan:
+        return "⚠️ 尚未新增任何行程段落。"
+
+    output = ["📋 你的智慧通勤規劃如下："]
     for i, seg in enumerate(travel_plan):
-        fixed_note = f"搭乘於【{seg['fixed_time']}】" if seg['fixed_time'] != "-" else "搭乘時間依即時資訊"
-        output.append(f"第{i+1}站：{seg['from']} ➜ {seg['to']}。【{seg['depart']}】出發，{fixed_note}的【{seg['mode']}】，{seg['arrival']} 抵達，天氣：{seg['weather']}；降雨機率：{seg['rain']}%。")
+        output.append(
+            f"\n🚩 第 {i+1} 段：{seg['from']} ➜ {seg['to']}\n"
+            f"🕒 出發時間：{seg['depart']}\n"
+            f"🚗 交通方式：{seg['mode']}\n"
+            f"⏱️ 預計抵達：{seg['arrival']}\n"
+            f"☁️ 天氣：{seg['weather']}｜🌧️ 降雨機率：{seg['rain']}%"
+        )
     return "\n".join(output)
