@@ -210,14 +210,15 @@ def add_trip_segment(start, end, time_str, allowed_modes):
         f"🕒 出發時間：{departure_time.strftime('%Y-%m-%d %H:%M')}\n"
         f"🚗 推薦交通方式：{best_label}\n"
         f"⏱️ 預計抵達時間：{actual_arrival}\n"
-        f"☁️ 預報天氣：{weather}｜🌧️ 降雨機率：{rain_prob}%"
+        f"☁️ 預報天氣：{weather}｜🌧️ 降雨機率：{rain_prob}% \n"
+        f"若欲查看行程規劃，請輸入「結束」"
     )
 
 def summarize_trip():
     if not travel_plan:
         return "⚠️ 尚未新增任何行程段落。"
 
-    output = ["📋 你的智慧通勤規劃如下："]
+    output = ["📋 你的行程規劃如下："]
     for i, seg in enumerate(travel_plan):
         output.append(
             f"\n🚩 第 {i+1} 段：{seg['from']} ➜ {seg['to']}\n"
