@@ -3,6 +3,10 @@ from datetime import datetime, timedelta
 from dateutil import parser
 import googlemaps
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+departure_time = datetime.now(ZoneInfo("Asia/Taipei"))
 
 OPENWEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 TDX_CLIENT_ID = os.getenv("TDX_CLIENT_ID")
@@ -138,7 +142,7 @@ def get_filtered_modes(blocked_modes):
 def add_trip_segment(start, end, time_str, allowed_modes):
     try:
         if not time_str:
-            departure_time = datetime.now()
+            departure_time = datetime.now(ZoneInfo("Asia/Taipei"))
         elif "," in time_str:
             date_part, time_part = [x.strip() for x in time_str.split(",")]
             departure_time = parser.parse(f"{date_part} {time_part}")
