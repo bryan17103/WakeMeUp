@@ -18,8 +18,7 @@ app = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
-# 使用者狀態管理
-user_states = {}
+user_states = {} #20250524 update : user state manage
 
 @app.route("/", methods=["GET"])
 def home():
@@ -45,6 +44,7 @@ def handle_message(event):
 
     global user_states
 
+#keyword 
     if "天氣查詢" in msg_lower:
         user_states[user_id] = {"state": "awaiting_weather_location"}
         reply = "🌤️ 請輸入你想查詢天氣的地點！"
@@ -65,6 +65,34 @@ def handle_message(event):
         user_states[user_id] = {"state": "awaiting_bus_input"}
         reply = "🚍 請按照以下格式查詢：\n [城市] [路線]（例如：Taipei 265）"
 
+    elif "簡介" in msg_lower:
+        reply = (
+            "👥 第十組 WakeMeUp 🛏️\n"
+            "個人化智慧通勤規劃 Line Bot\n\n"
+            "💻 開發環境：Python 3.9.6\n\n"
+            "📌 成員：\n"
+            "藥學二　王瑋仁\n"
+            "化工二　呂子毅\n"
+            "藥學二　唐翊安\n"
+            "工海一　張博彥"
+        )
+
+    elif "功能" in msg_lower:
+        reply = (
+            "目前支援的功能有：\n\n"
+            "🌀 天氣查詢 ➤ 輸入：天氣查詢\n"
+            "🗺️ 行程規劃 ➤ 輸入：路線規劃\n"
+            "🚍 班次查詢 ➤ 輸入：班次查詢\n"
+            "📚 功能查詢 ➤ 輸入：功能\n"
+            "🧑🏻‍💻 開發者查詢 ➤ 輸入：簡介\n"
+            "🪧 WakeMeUp 版本資訊：1.0"
+        )
+
+    elif "ib" in msg_lower:
+        reply = "我是IB！"
+
+#start check
+    
     elif user_id in user_states:
         state_info = user_states[user_id]
         state = state_info["state"]
@@ -104,37 +132,13 @@ def handle_message(event):
             reply = "⚠️ 無法辨識的操作狀態，請重新輸入關鍵字"
             user_states.pop(user_id, None)
 
-    elif "簡介" in msg_lower:
-        reply = (
-            "👥 第十組 WakeMeUp 🛏️\n"
-            "個人化智慧通勤規劃 Line Bot\n\n"
-            "💻 開發環境：Python 3.9.6\n\n"
-            "📌 成員：\n"
-            "藥學二　王瑋仁\n"
-            "化工二　呂子毅\n"
-            "藥學二　唐翊安\n"
-            "工海一　張博彥"
-        )
-
-    elif "功能" in msg_lower:
-        reply = (
-            "目前支援的功能有：\n\n"
-            "🌀 天氣查詢 ➤ 輸入：天氣查詢\n"
-            "🗺️ 行程規劃 ➤ 輸入：路線規劃\n"
-            "🚍 班次查詢 ➤ 輸入：班次查詢\n"
-            "📚 功能查詢 ➤ 輸入：功能\n"
-            "🧑🏻‍💻 開發者查詢 ➤ 輸入：簡介\n"
-            "🪧 WakeMeUp 版本資訊：1.0"
-        )
-
-    elif "ib" in msg_lower:
-        reply = "我是IB！"
-
     else:
         reply = "指令無法辨識，請輸入「功能」查詢支援功能！"
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
+
 if __name__ == "__main__":
+    user_states.clear()   #20250524 update : reset all user states on server start
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
