@@ -248,7 +248,7 @@ def summarize_trip():
         wake_time = depart_time - timedelta(hours=1)
 
         sleep_options = [] 
-        for hrs in [9 , 7.5 , 4 , 6.5]: # 該睡的時間 = 起床時間 - 睡眠週期 - 15分鐘入睡緩衝
+        for hrs in [9 , 7.5 , 6 , 4.5]: #睡眠週期=3-6個09min； 該睡的時間 = 起床時間 - 睡眠週期 - 15分鐘入睡緩衝
             sleep_time = wake_time - timedelta(minutes=int(hrs * 60 + 15))
             sleep_options.append(f"　- {sleep_time.strftime('%H:%M')}（{hrs} 小時）")
 
