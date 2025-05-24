@@ -253,8 +253,8 @@ def summarize_trip():
             sleep_options.append(f"　- {sleep_time.strftime('%H:%M')}（{hrs} 小時）")
 
         output.append(
-            f"\n😴 根據你的第一段抵達時間（{travel_plan[0]['arrival']}），"
-            f"你應於 {wake_time.strftime('%H:%M')} 起床，以預留 1 小時準備。\n"
+            f"\n😴 根據你的第一段出發時間（{depart_time.strftime('%H:%M')}），"
+            f"你應於 {wake_time.strftime('%H:%M')} 起床（預留 1 小時準備）。\n"
             "🛏️ 建議的就寢時間（含 15 分鐘入睡緩衝）：\n" + "\n".join(sleep_options)
         )
 
