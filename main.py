@@ -136,17 +136,17 @@ def handle_message(event):
             except Exception as e:
                 reply = f"⚠️ 輸入格式錯誤：請輸入正確的行程資料（每一項一行）\n錯誤詳情：{e}"
 
-        elif state == "awaiting_bus_input":
-            try:
-                city, route = msg.strip().split()
-                reply = get_bus_estimates(city, route)
-                user_states.pop(user_id)
-            except:
-                reply = "⚠️ 請輸入格式正確的：[城市] [公車路線]（例如：Taipei 265）"
+    elif state == "awaiting_bus_input":
+        try:
+            city, route = msg.strip().split()
+            reply = get_bus_estimates(city, route)
+            user_states.pop(user_id)
+        except:
+            reply = "⚠️ 請輸入格式正確的：[城市] [公車路線]（例如：Taipei 265）"
 
-        else:
-            reply = "⚠️ 無法辨識的操作狀態，請重新輸入關鍵字"
-            user_states.pop(user_id, None)
+    else:
+        reply = "⚠️ 無法辨識的操作狀態，請重新輸入關鍵字"
+        user_states.pop(user_id, None)
 
     else:
         reply = "指令無法辨識，請輸入「功能」查詢支援功能！"
