@@ -47,7 +47,7 @@ def handle_message(event):
 
     if "天氣查詢" in msg_lower:
         user_states[user_id] = {"state": "awaiting_weather_location"}
-        reply = "🌤️ 請輸入你想查詢天氣的地點："
+        reply = "🌤️ 請輸入你想查詢天氣的地點！"
 
     elif "路線規劃" in msg_lower:
         user_states[user_id] = {"state": "awaiting_route_input"}
@@ -61,9 +61,9 @@ def handle_message(event):
             "若有接下來的行程規劃，請繼續輸入，否則，請輸入「結束」"
         )
 
-    elif "班次" in msg_lower and not msg_lower.startswith("班次"):
+    elif "班次查詢" in msg_lower:
         user_states[user_id] = {"state": "awaiting_bus_input"}
-        reply = "🚍 請輸入格式：城市 路線（例如：Taipei 265）"
+        reply = "🚍 請按照以下格式查詢：\n [城市] [路線]（例如：Taipei 265）"
 
     elif user_id in user_states:
         state_info = user_states[user_id]
@@ -95,43 +95,11 @@ def handle_message(event):
                 reply = get_bus_estimates(city, route)
                 user_states.pop(user_id)
             except:
-                reply = "⚠️ 請輸入格式正確的：城市 路線（例如：Taipei 265）"
+                reply = "⚠️ 請輸入格式正確的：[城市] [公車路線]（例如：Taipei 265）"
 
         else:
             reply = "⚠️ 無法辨識的操作狀態，請重新輸入關鍵字"
             user_states.pop(user_id, None)
-
-    elif msg_lower.startswith("天氣"):
-        city = msg.replace("天氣", "").strip()
-        reply = get_current_weather(city)
-
-    elif msg_lower.startswith("路線"):
-        user_states[user_id] = {"state": "awaiting_route_input"}
-        reply = (
-            "🗺️ 請按照以下格式查詢：
-
-"
-            "出發地
-"
-            "目的地
-"
-            "日期（YYYY-MM-DD）
-"
-            "時間（HHMM 或 HH:MM）
-"
-            "排除方式（選填）
-
-"
-            "若有接下來的行程規劃，請繼續輸入，否則，請輸入「結束」"
-        )
-        )
-
-    elif msg_lower.startswith("班次"):
-        try:
-            _, city, route = msg.strip().split()
-            reply = get_bus_estimates(city, route)
-        except:
-            reply = "⚠️ 請輸入格式正確的：班次 [城市] [公車路線]（例如：班次 Taipei 265）"
 
     elif msg_lower == "結束":
         reply = summarize_trip()
