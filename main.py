@@ -74,20 +74,23 @@ def handle_message(event):
             user_states.pop(user_id)
 
         elif state == "awaiting_route_input":
-            try:
-                lines = [line.strip() for line in msg.splitlines() if line.strip() != ""]
-                if len(lines) < 4:
-                    raise ValueError("請至少輸入出發地、目的地、日期與時間（可選填排除方式）")
-                origin = lines[0]
-                destination = lines[1]
-                date_str = lines[2]
-                time_str = lines[3]
-                time = f"{date_str},{time_str}"
-                filtered = get_filtered_modes([lines[4]] if len(lines) >= 5 else [])
-                reply = add_trip_segment(origin, destination, time, filtered)
-                # 不清除狀態，允許使用者繼續輸入下一段或輸入「結束」
-            except Exception as e:
-                reply = f"⚠️ 輸入格式錯誤：請輸入正確的行程資料（每一項一行）\n錯誤詳情：{e}"
+            if msg_lower == "結束":
+                reply = summarize_trip()
+                user_states.pop(user_id, None)
+            else:
+                try:
+                    lines = [line.strip() for line in msg.splitlines() if line.strip() != ""]
+                    if len(lines) < 4:
+                        raise ValueError("請至少輸入出發地、目的地、日期與時間（可選填排除方式）")
+                    origin = lines[0]
+                    destination = lines[1]
+                    date_str = lines[2]
+                    time_str = lines[3]
+                    time = f"{date_str},{time_str}"
+                    filtered = get_filtered_modes([lines[4]] if len(lines) >= 5 else [])
+                    reply = add_trip_segment(origin, destination, time, filtered)
+                except Exception as e:
+                    reply = f"⚠️ 輸入格式錯誤：請輸入正確的行程資料（每一項一行）\n錯誤詳情：{e}"
 
         elif state == "awaiting_bus_input":
             try:
@@ -100,10 +103,6 @@ def handle_message(event):
         else:
             reply = "⚠️ 無法辨識的操作狀態，請重新輸入關鍵字"
             user_states.pop(user_id, None)
-
-    elif msg_lower == "結束":
-        reply = summarize_trip()
-        user_states.pop(user_id, None)
 
     elif "簡介" in msg_lower:
         reply = (
