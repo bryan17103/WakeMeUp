@@ -75,25 +75,19 @@ def handle_message(event):
 
         elif state == "awaiting_route_input":
             try:
-                inputs = msg.split(",")
-                if len(inputs) == 2:
-                    origin, destination = inputs
-                    time = ""
-                    filtered = get_filtered_modes([])
-                elif len(inputs) == 4:
-                    origin, destination, date_str, time_str = inputs
-                    time = f"{date_str},{time_str}"
-                    filtered = get_filtered_modes([])
-                elif len(inputs) == 5:
-                    origin, destination, date_str, time_str, blocked = inputs
-                    time = f"{date_str},{time_str}"
-                    filtered = get_filtered_modes([blocked])
-                else:
-                    raise ValueError("輸入格式錯誤")
-                reply = add_trip_segment(origin.strip(), destination.strip(), time, filtered)
-                # 不清除狀態，允許持續輸入多段行程，直到輸入「結束」
+                lines = [line.strip() for line in msg.splitlines() if line.strip() != ""]
+                if len(lines) < 4:
+                    raise ValueError("請至少輸入出發地、目的地、日期與時間（可選填排除方式）")
+                origin = lines[0]
+                destination = lines[1]
+                date_str = lines[2]
+                time_str = lines[3]
+                time = f"{date_str},{time_str}"
+                filtered = get_filtered_modes([lines[4]] if len(lines) >= 5 else [])
+                reply = add_trip_segment(origin, destination, time, filtered)
+                # 不清除狀態，允許使用者繼續輸入下一段或輸入「結束」
             except Exception as e:
-                reply = f"⚠️ 請輸入正確格式：出發地,目的地[,日期,時間[,排除方式]]\n錯誤詳情：{e}"
+                reply = f"⚠️ 輸入格式錯誤：請輸入正確的行程資料（每一項一行）\n錯誤詳情：{e}"
 
         elif state == "awaiting_bus_input":
             try:
@@ -112,25 +106,24 @@ def handle_message(event):
         reply = get_current_weather(city)
 
     elif msg_lower.startswith("路線"):
-        inputs = msg[3:].strip().split(",")
-        try:
-            if len(inputs) == 2:
-                origin, destination = inputs
-                time = ""
-                filtered = get_filtered_modes([])
-            elif len(inputs) == 4:
-                origin, destination, date_str, time_str = inputs
-                time = f"{date_str},{time_str}"
-                filtered = get_filtered_modes([])
-            elif len(inputs) == 5:
-                origin, destination, date_str, time_str, blocked = inputs
-                time = f"{date_str},{time_str}"
-                filtered = get_filtered_modes([blocked])
-            else:
-                raise ValueError(f"你輸入了 {len(inputs)} 個欄位，格式應為：出發地,目的地[,日期,時間[,排除方式]]")
-            reply = add_trip_segment(origin.strip(), destination.strip(), time, filtered)
-        except Exception as e:
-            reply = f"⚠️ 請輸入格式正確的：路線 出發地,目的地[,日期,時間[,排除方式]]\n錯誤詳情：{e}"
+        user_states[user_id] = {"state": "awaiting_route_input"}
+        reply = (
+            "🗺️ 請按照以下格式查詢：
+
+"
+            "出發地
+"
+            "目的地
+"
+            "日期（YYYY-MM-DD）
+"
+            "時間（HHMM 或 HH:MM）
+"
+            "排除方式（選填）
+
+"
+            "若有接下來的行程規劃，請繼續輸入，否則，請輸入「結束」"
+        )
 
     elif msg_lower.startswith("班次"):
         try:
