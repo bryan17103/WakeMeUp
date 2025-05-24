@@ -241,6 +241,25 @@ def summarize_trip():
             f"⏱️ 預計抵達：{seg['arrival']}\n"
             f"☁️ 天氣：{seg['weather']}｜🌧️ 降雨機率：{seg['rain']}%"
         )
+
+    try:
+        first_depart_str = travel_plan[0]["depart"] 
+        depart_time = datetime.strptime(first_depart_str, "%Y-%m-%d %H:%M")
+        wake_time = depart_time - timedelta(hours=1)
+
+        sleep_options = [] 
+        for hrs in [4.5, 6, 7.5, 9]: # 建議就寢時間 = 起床時間 - 睡眠週期 - 15分鐘入睡緩衝
+            sleep_time = wake_time - timedelta(minutes=int(hrs * 60 + 15))
+            sleep_options.append(f"　- {sleep_time.strftime('%H:%M')}（{hrs} 小時）")
+
+        output.append(
+            f"\n😴 根據你的第一段抵達時間（{travel_plan[0]['arrival']}），"
+            f"你應於 {wake_time.strftime('%H:%M')} 起床，以預留 1 小時準備。\n"
+            "🛏️ 建議的就寢時間（含 15 分鐘入睡緩衝）：\n" + "\n".join(sleep_options)
+        )
+
+    except Exception as e:
+        output.append(f"\n⚠️ 起床與睡眠推算失敗：{e}")
     result = "\n".join(output)
     travel_plan.clear()  # 清空行程紀錄
     return result
