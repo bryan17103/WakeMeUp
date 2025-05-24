@@ -18,6 +18,8 @@ app = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
+user_states = {} #05/24更新：使用者狀態管理
+
 @app.route("/", methods=["GET"])
 def home():
     return "WakeMeUp LINE Bot is running!"
@@ -38,8 +40,65 @@ def callback():
 def handle_message(event):
     msg = event.message.text.strip()
     msg_lower = msg.lower()
+    user_id = event.source.user_id
 
-    if msg_lower.startswith("天氣"):
+    global user_states
+
+    if "天氣查詢" in msg_lower:
+        user_states[user_id] = {"state": "awaiting_weather_location"}
+        reply = "🌤️ 請輸入你想查詢天氣的地點："
+
+    elif "路線規劃" in msg_lower and not msg_lower.startswith("路線規劃"):
+        user_states[user_id] = {"state": "awaiting_route_input"}
+        reply = "🗺️ 請輸入：出發地,目的地[,日期,時間[,排除方式]]"
+
+    elif "班次查詢" in msg_lower and not msg_lower.startswith("班次查詢"):
+        user_states[user_id] = {"state": "awaiting_bus_input"}
+        reply = "🚍 請輸入格式：城市 路線（例如：Taipei 265）"
+
+    elif user_id in user_states:
+        state_info = user_states[user_id]
+        state = state_info["state"]
+
+        if state == "awaiting_weather_location":
+            reply = get_current_weather(msg)
+            user_states.pop(user_id)
+
+        elif state == "awaiting_route_input":
+            try:
+                inputs = msg.split(",")
+                if len(inputs) == 2:
+                    origin, destination = inputs
+                    time = ""
+                    filtered = get_filtered_modes([])
+                elif len(inputs) == 4:
+                    origin, destination, date_str, time_str = inputs
+                    time = f"{date_str},{time_str}"
+                    filtered = get_filtered_modes([])
+                elif len(inputs) == 5:
+                    origin, destination, date_str, time_str, blocked = inputs
+                    time = f"{date_str},{time_str}"
+                    filtered = get_filtered_modes([blocked])
+                else:
+                    raise ValueError("輸入格式錯誤")
+                reply = add_trip_segment(origin.strip(), destination.strip(), time, filtered)
+                user_states.pop(user_id)
+            except Exception as e:
+                reply = f"⚠️ 請輸入正確格式：出發地,目的地[,日期,時間[,排除方式]]\n錯誤詳情：{e}"
+
+        elif state == "awaiting_bus_input":
+            try:
+                city, route = msg.strip().split()
+                reply = get_bus_estimates(city, route)
+                user_states.pop(user_id)
+            except:
+                reply = "⚠️ 請輸入格式正確的：城市 路線（例如：Taipei 265）"
+
+        else:
+            reply = "⚠️ 無法辨識的操作狀態，請重新輸入關鍵字"
+            user_states.pop(user_id, None)
+
+    elif msg_lower.startswith("天氣"):
         city = msg.replace("天氣", "").strip()
         reply = get_current_weather(city)
 
@@ -89,19 +148,11 @@ def handle_message(event):
     elif "功能" in msg_lower:
         reply = (
             "目前支援的功能有：\n\n"
-            "🌀 天氣查詢 ➤ 請輸入：\n"
-            "　　天氣 【地點】\n"
-            "　　例如：天氣 國立台灣大學\n\n"
-            "🗺️ 行程規劃 ➤ 請輸入：\n"
-            "　　路線 【出發地】,【目的地】\n"
-            "　　或 路線 【出發地】,【目的地】,【日期】,【時間】\n"
-            "　　例如：路線 台北車站,國父紀念館,2025-05-23,0800\n"
-            "　　或加入欲排除交通方式：路線 台北車站,國父紀念館,2025-05-23,0800,開車\n\n"
-            "🚍 班次查詢 ➤ 請輸入：\n"
-            "　　班次 [城市] [公車路線]\n"
-            "　　例如：班次 Taipei 265\n\n"
+            "🌀 天氣查詢 ➤ 輸入：天氣查詢\n"
+            "🗺️ 行程規劃 ➤ 輸入：路線規劃\n"
+            "🚍 班次查詢 ➤ 輸入：班次查詢\n"
             "📚 功能查詢 ➤ 輸入：功能\n"
-            "🧑🏻‍💻 開發者查詢 ➤ 輸入：簡介\n\n"
+            "🧑🏻‍💻 開發者查詢 ➤ 輸入：簡介\n"
             "🪧 WakeMeUp 版本資訊：1.0"
         )
 
