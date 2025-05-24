@@ -18,7 +18,8 @@ app = Flask(__name__)
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
-user_states = {} #05/24更新：使用者狀態管理
+# 使用者狀態管理
+user_states = {}
 
 @app.route("/", methods=["GET"])
 def home():
@@ -48,11 +49,19 @@ def handle_message(event):
         user_states[user_id] = {"state": "awaiting_weather_location"}
         reply = "🌤️ 請輸入你想查詢天氣的地點："
 
-    elif "路線規劃" in msg_lower and not msg_lower.startswith("路線規劃"):
+    elif "路線規劃" in msg_lower:
         user_states[user_id] = {"state": "awaiting_route_input"}
-        reply = "🗺️ 請輸入：出發地,目的地[,日期,時間[,排除方式]]"
+        reply = (
+            "🗺️ 請按照以下格式查詢：\n\n"
+            "出發地\n"
+            "目的地\n"
+            "日期（YYYY-MM-DD）\n"
+            "時間（HHMM 或 HH:MM）\n"
+            "排除方式（選填）\n\n"
+            "若有接下來的行程規劃，請繼續輸入，否則，請輸入「結束」"
+        )
 
-    elif "班次查詢" in msg_lower and not msg_lower.startswith("班次查詢"):
+    elif "班次" in msg_lower and not msg_lower.startswith("班次"):
         user_states[user_id] = {"state": "awaiting_bus_input"}
         reply = "🚍 請輸入格式：城市 路線（例如：Taipei 265）"
 
@@ -82,7 +91,7 @@ def handle_message(event):
                 else:
                     raise ValueError("輸入格式錯誤")
                 reply = add_trip_segment(origin.strip(), destination.strip(), time, filtered)
-                user_states.pop(user_id)
+                # 不清除狀態，允許持續輸入多段行程，直到輸入「結束」
             except Exception as e:
                 reply = f"⚠️ 請輸入正確格式：出發地,目的地[,日期,時間[,排除方式]]\n錯誤詳情：{e}"
 
@@ -132,6 +141,7 @@ def handle_message(event):
 
     elif msg_lower == "結束":
         reply = summarize_trip()
+        user_states.pop(user_id, None)
 
     elif "簡介" in msg_lower:
         reply = (
