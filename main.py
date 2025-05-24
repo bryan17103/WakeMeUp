@@ -94,6 +94,13 @@ def handle_message(event):
 
     elif "ib" in msg_lower:
         reply = "我是IB！"
+        
+    elif msg_lower == "403403403":#check all user
+        if user_states:
+            state_list = "\n".join([f"{uid} ➤ {info['state']}" for uid, info in user_states.items()])
+            reply = f"🧾 目前使用者狀態如下：\n{state_list}"
+        else:
+            reply = "✅ 目前沒有任何使用者狀態紀錄。"
 
     #state check
     elif user_id in user_states:
