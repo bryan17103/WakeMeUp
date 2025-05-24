@@ -40,11 +40,11 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    msg = event.message.text.strip()
+    msg = event.message.text.strip() #remove 1st blank
     msg_lower = msg.lower()
-    user_id = event.source.user_id
+    user_id = event.source.user_id #one to one 
 
-    global user_states
+    global user_states 
 
     #keyword trigger
     
@@ -95,7 +95,7 @@ def handle_message(event):
     elif "ib" in msg_lower:
         reply = "我是IB！"
         
-    elif msg_lower == "403403403":#check all user
+    elif msg_lower == "403403403": #內部測試，check all user status
         if user_states:
             state_list = "\n".join([f"{uid} ➤ {info['state']}" for uid, info in user_states.items()])
             reply = f"目前使用者狀態如下：\n{state_list}"
@@ -125,7 +125,7 @@ def handle_message(event):
                     destination = lines[1]
 
                     now = datetime.now(ZoneInfo("Asia/Taipei"))
-                    time = now.strftime("%Y-%m-%d,%H:%M")
+                    time = now.strftime("%Y-%m-%d,%H:%M") #如果沒有輸入日期時間就當作是right now
                     filtered = get_filtered_modes([]) #這個是排除的交通方式
 
                     if len(lines) == 3:
