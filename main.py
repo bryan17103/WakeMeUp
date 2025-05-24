@@ -124,6 +124,7 @@ def handle_message(event):
 "
             "若有接下來的行程規劃，請繼續輸入，否則，請輸入「結束」"
         )
+        )
 
     elif msg_lower.startswith("班次"):
         try:
