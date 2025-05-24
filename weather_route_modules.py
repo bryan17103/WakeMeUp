@@ -248,14 +248,14 @@ def summarize_trip():
         wake_time = depart_time - timedelta(hours=1)
 
         sleep_options = [] 
-        for hrs in [9 , 7.5 , 4 , 6.5]: # 建議就寢時間 = 起床時間 - 睡眠週期 - 15分鐘入睡緩衝
+        for hrs in [9 , 7.5 , 4 , 6.5]: # 該睡的時間 = 起床時間 - 睡眠週期 - 15分鐘入睡緩衝
             sleep_time = wake_time - timedelta(minutes=int(hrs * 60 + 15))
             sleep_options.append(f"　- {sleep_time.strftime('%H:%M')}（{hrs} 小時）")
 
         output.append(
             f"\n😴 根據你的第一段出發時間（{depart_time.strftime('%H:%M')}），"
             f"你應於 {wake_time.strftime('%H:%M')} 起床（預留 1 小時準備）。\n"
-            "🛏️ 建議的就寢時間（含 15 分鐘入睡緩衝）：\n" + "\n".join(sleep_options)
+            "🛏️ 建議你在以下時間入睡（含 15 分鐘入睡緩衝）：\n" + "\n".join(sleep_options)
         )
 
     except Exception as e:
