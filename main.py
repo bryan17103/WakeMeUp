@@ -3,6 +3,8 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from weather_route_modules import (
     get_current_weather,
@@ -58,7 +60,8 @@ def handle_message(event):
             "日期（YYYY-MM-DD）\n"
             "時間（HHMM 或 HH:MM）\n"
             "排除方式（選填）\n\n"
-            "若有接下來的行程規劃，請繼續輸入，否則，請輸入「結束」"
+            "若不輸入日期與時間，則預設為當下時間。\n"
+            "若有接下來的行程規劃，請繼續輸入，否則請輸入「結束」以查看規劃統整。"
         )
 
     elif "班次查詢" in msg_lower:
@@ -101,24 +104,37 @@ def handle_message(event):
             reply = get_current_weather(msg)
             user_states.pop(user_id)
 
-        elif state == "awaiting_route_input":
-            if msg_lower == "結束":
-                reply = summarize_trip()
-                user_states.pop(user_id, None)
-            else:
-                try:
-                    lines = [line.strip() for line in msg.splitlines() if line.strip() != ""]
-                    if len(lines) < 4:
-                        raise ValueError("請至少輸入出發地、目的地、日期與時間（可選填排除方式）")
-                    origin = lines[0]
-                    destination = lines[1]
+    elif state == "awaiting_route_input":
+        if msg_lower == "結束":
+            reply = summarize_trip()
+            user_states.pop(user_id, None)
+        else:
+            try:
+                lines = [line.strip() for line in msg.splitlines() if line.strip() != ""]
+                if len(lines) not in [2, 3, 4, 5]:
+                    raise ValueError("請輸入 2~5 行資訊：出發地、目的地、可選的時間與排除方式")
+                origin = lines[0]
+                destination = lines[1]
+                now = datetime.now(ZoneInfo("Asia/Taipei"))
+                time = now.strftime("%Y-%m-%d,%H:%M")
+                filtered = get_filtered_modes([]) #這邊是排除的交通方式
+
+                if len(lines) == 3: # 出發地, 目的地, 排除方式
+                    filtered = get_filtered_modes([lines[2]])
+
+                elif len(lines) == 4: # 出發地, 目的地, 日期, 時間
                     date_str = lines[2]
                     time_str = lines[3]
                     time = f"{date_str},{time_str}"
-                    filtered = get_filtered_modes([lines[4]] if len(lines) >= 5 else [])
-                    reply = add_trip_segment(origin, destination, time, filtered)
-                except Exception as e:
-                    reply = f"⚠️ 輸入格式錯誤：請輸入正確的行程資料（每一項一行）\n錯誤詳情：{e}"
+
+                elif len(lines) == 5:# 出發地, 目的地, 日期, 時間, 排除方式
+                    date_str = lines[2]
+                    time_str = lines[3]
+                    time = f"{date_str},{time_str}"
+                    filtered = get_filtered_modes([lines[4]])
+                reply = add_trip_segment(origin, destination, time, filtered)
+            except Exception as e:
+                reply = f"⚠️ 輸入格式錯誤：請輸入正確的行程資料（每一項一行）\n錯誤詳情：{e}"
 
         elif state == "awaiting_bus_input":
             try:
