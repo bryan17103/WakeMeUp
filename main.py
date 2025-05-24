@@ -65,7 +65,7 @@ def handle_message(event):
             "若有接下來的行程規劃，請繼續輸入，否則請輸入「結束」以查看規劃統整。"
         )
 
-    elif "班次查詢" in msg_lower:
+    elif "公車查詢" in msg_lower:
         user_states[user_id] = {"state": "awaiting_bus_input"}
         reply = "🚍 請按照以下格式查詢：\n [城市] [路線]（例如：Taipei 265）"
 
@@ -86,10 +86,10 @@ def handle_message(event):
             "目前支援的功能有：\n\n"
             "🌀 天氣查詢 ➤ 輸入：天氣查詢\n"
             "🗺️ 行程規劃 ➤ 輸入：路線規劃\n"
-            "🚍 班次查詢 ➤ 輸入：班次查詢\n"
+            "🚍 公車查詢 ➤ 輸入：公車查詢\n"
             "📚 功能查詢 ➤ 輸入：功能\n"
             "🧑🏻‍💻 開發者查詢 ➤ 輸入：簡介\n"
-            "🪧 WakeMeUp 版本資訊：1.0"
+            "🪧 WakeMeUp 版本資訊：1.20"
         )
 
     elif "ib" in msg_lower:
@@ -112,14 +112,14 @@ def handle_message(event):
                 try:
                     lines = [line.strip() for line in msg.splitlines() if line.strip() != ""]
                     if len(lines) not in [2, 3, 4, 5]:
-                        raise ValueError("請輸入 2~5 行資訊：出發地、目的地、可選的時間與排除方式")
+                        raise ValueError("請輸入 2~5 行資訊：出發地、目的地、日期、時間與排除方式")
 
                     origin = lines[0]
                     destination = lines[1]
 
                     now = datetime.now(ZoneInfo("Asia/Taipei"))
                     time = now.strftime("%Y-%m-%d,%H:%M")
-                    filtered = get_filtered_modes([])
+                    filtered = get_filtered_modes([]) #這個是排除的交通方式
 
                     if len(lines) == 3:
                         filtered = get_filtered_modes([lines[2]])
@@ -146,7 +146,7 @@ def handle_message(event):
                 reply = get_bus_estimates(city, route)
                 user_states.pop(user_id)
             except:
-                reply = "⚠️ 請輸入格式正確的：[城市] [公車路線]（例如：Taipei 265）"
+                reply = "⚠️ 請按照以下格式查詢：\n [城市] [路線]（例如：Taipei 265）"
 
         else:
             reply = "⚠️ 無法辨識的操作狀態，請重新輸入關鍵字"
