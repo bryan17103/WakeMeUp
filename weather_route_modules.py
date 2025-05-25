@@ -235,19 +235,19 @@ def summarize_trip():
     output = ["📋 你的行程規劃如下："]
 
     for i, seg in enumerate(travel_plan):
-    if not seg["mode"] or seg["arrival"] == "-":
-        output.append(
-            f"\n🚩 第 {i+1} 段：{seg['from']} ➜ {seg['to']}\n"
-            f"⚠😭 無法找到合適的交通方式。"
-        )
-    else:
-        output.append(
-            f"\n🚩 第 {i+1} 段：{seg['from']} ➜ {seg['to']}\n"
-            f"🕒 出發時間：{seg['depart']}\n"
-            f"🚗 交通方式：{seg['mode']}\n"
-            f"⏱️ 預計抵達：{seg['arrival']}\n"
-            f"☁️ 天氣：{seg['weather']}｜🌧️ 降雨機率：{seg['rain']}%"
-        )
+        if not seg["mode"] or seg["arrival"] == "-":
+            output.append(
+                f"\n🚩 第 {i+1} 段：{seg['from']} ➜ {seg['to']}\n"
+                f"⚠😭 無法找到合適的交通方式。"
+            )
+        else:
+            output.append(
+                f"\n🚩 第 {i+1} 段：{seg['from']} ➜ {seg['to']}\n"
+                f"🕒 出發時間：{seg['depart']}\n"
+                f"🚗 交通方式：{seg['mode']}\n"
+                f"⏱️ 預計抵達：{seg['arrival']}\n"
+                f"☁️ 天氣：{seg['weather']}｜🌧️ 降雨機率：{seg['rain']}%"
+            )
 
     try:
         first_depart_str = travel_plan[0]["depart"] 
