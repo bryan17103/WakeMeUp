@@ -233,7 +233,14 @@ def summarize_trip():
         return "⚠️ 尚未新增任何行程段落。"
 
     output = ["📋 你的行程規劃如下："]
+
     for i, seg in enumerate(travel_plan):
+    if not seg["mode"] or seg["arrival"] == "-":
+        output.append(
+            f"\n🚩 第 {i+1} 段：{seg['from']} ➜ {seg['to']}\n"
+            f"⚠😭 無法找到合適的交通方式。"
+        )
+    else:
         output.append(
             f"\n🚩 第 {i+1} 段：{seg['from']} ➜ {seg['to']}\n"
             f"🕒 出發時間：{seg['depart']}\n"
