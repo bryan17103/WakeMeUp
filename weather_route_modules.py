@@ -238,7 +238,7 @@ def summarize_trip():
         if not seg["mode"] or seg["arrival"] == "-":
             output.append(
                 f"\n🚩 第 {i+1} 段：{seg['from']} ➜ {seg['to']}\n"
-                f"⚠😭 無法找到合適的交通方式。"
+                f"😭 無法找到合適的交通方式。"
             )
         else:
             output.append(
