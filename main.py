@@ -15,36 +15,37 @@ from weather_route_modules import (
     get_filtered_modes
 )
 
-app = Flask(__name__)
+app = Flask(__name__) 
 
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 
 user_states = {}  # 20250524 update : user state manage
 
-@app.route("/", methods=["GET"])
-def home():
+@app.route("/", methods=["GET"]) #check server running status
+def home(): 
     return "WakeMeUp LINE Bot is running!"
 
-@app.route("/callback", methods=["POST"])
+@app.route("/callback", methods=["POST"]) #webhook setting
 def callback():
-    signature = request.headers.get("X-Line-Signature", "")
-    body = request.get_data(as_text=True)
+    signature = request.headers.get("X-Line-Signature", "") #從 request header 中取得簽章，用來驗證這筆請求是否來自 LINE
+    body = request.get_data(as_text=True) #取得原始訊息資料
 
     try:
-        handler.handle(body, signature)
+        handler.handle(body, signature) #驗證簽名並處理事
     except InvalidSignatureError:
         abort(403)
 
     return "OK"
 
-@handler.add(MessageEvent, message=TextMessage)
-def handle_message(event):
+@handler.add(MessageEvent, message=TextMessage) #處理訊息事件
+def handle_message(event): #event 是一個 MessageEvent 物件，裡面包含使用者傳來的文字、用戶 ID、來源等資訊
     msg = event.message.text.strip() #remove 1st blank
     msg_lower = msg.lower()
     user_id = event.source.user_id #one to one 
 
-    global user_states 
+    global user_states  #對全域變數重新賦值，不是創建新的區域變數 --> 在函式中正確地修改/更新整個全域的 user_states 字典
+    #不加 global，在函式裡賦值會只影響區域變數，導致無法正確記錄或更新使用者狀態
 
     #keyword trigger
     
@@ -80,7 +81,7 @@ def handle_message(event):
             "部署平台：Railway\n"
             "版本控制：GitHub\n"
             "外部整合：LINE Messaging API\n\n"
-            "👨 成員\n"
+            "🧑🏻‍💻 成員\n"
             "藥學二　王瑋仁\n"
             "化工二　呂子毅\n"
             "藥學二　唐翊安\n"
@@ -90,7 +91,7 @@ def handle_message(event):
     elif "功能" in msg_lower:
         reply = (
             "目前支援的功能有：\n\n"
-            "🌀 天氣查詢 ➤ 輸入：天氣查詢\n"
+            "🌤️ 天氣查詢 ➤ 輸入：天氣查詢\n"
             "🗺️ 行程規劃 ➤ 輸入：路線規劃\n"
             "🚍 公車查詢 ➤ 輸入：公車查詢\n"
             "📚 功能查詢 ➤ 輸入：功能\n"
@@ -170,8 +171,8 @@ def handle_message(event):
 
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
-#dont touch
-if __name__ == "__main__":
+#啟動 Flask 伺服器的初始化邏輯，讓外部server可以連線到我們的 Flask ，不只是在本地運行
+if __name__ == "__main__": #如果這個檔案是被直接執行（而不是被其他程式 import），就執行下面
     user_states.clear()   # reset all user states on server start
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 8080))#從環境變數中取得部署平台指定的PORT，如果沒有的話就用預設值 8080（本機測試）
+    app.run(host="0.0.0.0", port=port) #啟動 Flask ，0.0.0.0 代表接受所有 IP（不只本機），然後使用指定的 port 監聽請求。
